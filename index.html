@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Texas Hold'em Win Rate Calculator</title>
+    <!-- Load PyScript -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; background: #f4f4f9; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input, button { width: 100%; padding: 10px; margin: 8px 0 16px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #output { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 4px; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🃏 Texas Hold'em Calculator</h2>
+        
+        <label>Number of Players (2-10):</label>
+        <input type="number" id="num_players" value="2" min="2" max="10">
+
+        <label>Your Hole Cards (e.g., Ah Kd):</label>
+        <input type="text" id="hole_cards" placeholder="Ah Kd">
+
+        <label>Community Cards (Leave empty for Pre-Flop):</label>
+        <input type="text" id="board_cards" placeholder="2s 5c Jd">
+
+        <button py-click="calculate_odds">Calculate Odds</button>
+
+        <div id="output">Results will appear here...</div>
+    </div>
+
+    <!-- The Python Logic -->
+    <py-script>
+        import random
+        from itertools import combinations
+        from collections import Counter
+        from pyscript import document
+
+        RANKS = "23456789TJQKA"
+        SUITS = "cdhs"
+
+        def parse_card(s):
+            s = s.strip().upper()
+            if len(s) < 2: raise ValueError(f"Invalid card: '{s}'")
+            rank = s[0]
+            suit = s[1].lower()
+            if rank not in RANKS or suit not in SUITS:
+                raise ValueError(f"Invalid format: '{s}'. Use Ranks 2-A, Suits c,d,h,s.")
+            return (RANKS.index(rank), SUITS.index(suit))
+
+        def eval_5card(hand):
+            ranks = sorted([c[0] for c in hand], reverse=True)
+            suits = [c[1] for c in hand]
+            is_flush = len(set(suits)) == 1
+            is_straight = ranks == list(range(ranks[0], ranks[0]-5, -1))
+            if not is_straight and ranks == [12, 3, 2, 1, 0]:
+                is_straight = True; ranks = [3, 2, 1, 0, -1]
+            cnt = Counter(ranks)
+            freq = sorted(cnt.values(), reverse=True)
+            sorted_ranks = sorted(cnt.keys(), key=lambda r: (cnt[r], r), reverse=True)
+            
+            if is_straight and is_flush: return (8, ranks)
+            if freq == [4, 1]: return (7, sorted_ranks)
+            if freq == [3, 2]: return (6, sorted_ranks)
+            if is_flush: return (5, ranks)
+            if is_straight: return (4, ranks)
+            if freq[0] == 3: return (3, sorted_ranks)
+            if freq[:2] == [2, 2]: return (2, sorted_ranks)
+            if freq[0] == 2: return (1, sorted_ranks)
+            return (0, ranks)
+
+        def best_7card(cards):
+            return max(eval_5card(combo) for combo in combinations(cards, 5))
+
+        def calc_win_rate(hole, community, num_players, sims=3000):
+            all_cards = [(r, s) for r in range(13) for s in range(4)]
+            used = {tuple(c) for c in hole + community}
+            deck = [c for c in all_cards if tuple(c) not in used]
+            need_board = 5 - len(community)
+            need_opps = (num_players - 1) * 2
+            
+            if len(deck) < need_board + need_opps: return 0, 0, 0
+            
+            wins = ties = losses = 0
+            for _ in range(sims):
+                random.shuffle(deck)
+                board = list(community) + deck[:need_board]
+                opp_deck = deck[need_board:]
+                my_rank = best_7card(hole + board)
+                
+                beat_me = tie_me = False
+                for i in range(num_players - 1):
+                    opp = best_7card(opp_deck[i*2:(i+1)*2] + board)
+                    if opp > my_rank: 
+                        beat_me = True
+                        break
+                    elif opp == my_rank: 
+                        tie_me = True
+                        
+                if beat_me: losses += 1
+                elif tie_me: ties += 1
+                else: wins += 1
+                
+            return wins/sims*100, ties/sims*100, losses/sims*100
+
+        def calculate_odds(event):
+            out = document.getElementById("output")
+            out.innerHTML = "⏳ Calculating... (This may take a few seconds)"
+            
+            try:
+                # Get inputs from HTML
+                n = int(document.getElementById("num_players").value)
+                h_str = document.getElementById("hole_cards").value.split()
+                b_str = document.getElementById("board_cards").value.split()
+                
+                if len(h_str) != 2: raise ValueError("Please enter exactly 2 hole cards.")
+                if len(b_str) not in [0, 3, 4, 5]: raise ValueError("Board must be 0, 3, 4, or 5 cards.")
+                
+                hole = [parse_card(c) for c in h_str]
+                community = [parse_card(c) for c in b_str]
+                
+                if len(hole + community) != len(set(hole + community)):
+                    raise ValueError("Duplicate cards detected!")
+                    
+                # Run simulation (reduced to 3000 for browser performance)
+                w, t, l = calc_win_rate(hole, community, n, sims=3000)
+                
+                out.innerHTML = f"""
+                    <strong>🏆 Win:</strong> {w:.1f}%<br>
+                    <strong>🤝 Tie:</strong> {t:.1f}%<br>
+                    <strong>❌ Lose:</strong> {l:.1f}%
+                """
+            except Exception as e:
+                out.innerHTML = f"<span style='color:red;'>⚠ Error: {str(e)}</span>"
+    </py-script>
+</body>
+</html>
