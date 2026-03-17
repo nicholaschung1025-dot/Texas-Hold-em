@@ -14,6 +14,8 @@
             --win: #27ae60;
             --tie: #f1c40f;
             --lose: #c0392b;
+            --card-size: 50px; /* Increased base size */
+            --card-gap: 8px;   /* Increased spacing */
         }
 
         body {
@@ -28,8 +30,8 @@
             padding: 20px;
         }
 
-        h1 { margin-bottom: 10px; color: var(--accent); }
-        h2 { font-size: 1.2rem; margin-top: 20px; border-bottom: 1px solid #444; padding-bottom: 5px; width: 100%; max-width: 600px;}
+        h1 { margin-bottom: 10px; color: var(--accent); text-align: center;}
+        h2 { font-size: 1.2rem; margin-top: 20px; border-bottom: 1px solid #444; padding-bottom: 5px; width: 100%; max-width: 800px;}
 
         .container {
             background: #2c2c2c;
@@ -37,7 +39,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             width: 100%;
-            max-width: 600px;
+            max-width: 900px; /* Wider to accommodate bigger cards */
         }
 
         /* Controls */
@@ -50,144 +52,211 @@
             background: #333;
             color: white;
             width: 60px;
+            font-size: 16px;
         }
 
-        /* Card Selector */
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(13, 1fr);
-            gap: 2px;
-            margin-bottom: 10px;
+        /* Card Selector - Enhanced for Clickability */
+        .card-selector-container {
+            overflow-x: auto; /* Allow scrolling on very small screens */
+            padding-bottom: 10px;
         }
+
         .suit-row {
             display: flex;
             align-items: center;
-            margin-bottom: 5px;
+            margin-bottom: 12px;
+            gap: var(--card-gap);
         }
-        .suit-label { width: 20px; font-weight: bold; }
+
+        .suit-label { 
+            width: 30px; 
+            font-weight: bold; 
+            font-size: 24px; 
+            text-align: center;
+            flex-shrink: 0;
+        }
         
+        .card-grid {
+            display: flex;
+            gap: var(--card-gap);
+        }
+
         .card-btn {
-            aspect-ratio: 2/3;
+            width: var(--card-size);
+            height: calc(var(--card-size) * 1.4); /* Standard card ratio */
             background: var(--card-bg);
-            border: 1px solid #ccc;
-            border-radius: 3px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 20px; /* Larger text */
+            font-weight: 800;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #333;
-            transition: transform 0.1s;
+            transition: all 0.15s ease;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            flex-shrink: 0;
         }
+
         .card-btn.red { color: #c0392b; }
+        
+        /* Hover Effect */
+        .card-btn:not(.disabled):hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            border-color: var(--accent);
+        }
+
+        /* Active/Selected State */
         .card-btn.selected {
             background: var(--accent);
             color: white;
-            transform: scale(1.1);
-            box-shadow: 0 0 5px var(--accent);
-        }
-        .card-btn.disabled {
-            background: #555;
-            color: #888;
-            cursor: not-allowed;
-            opacity: 0.5;
+            border-color: #d35400;
+            transform: translateY(-2px);
+            box-shadow: 0 0 10px var(--accent);
         }
 
-        /* Selected Cards Display */
+        .card-btn.disabled {
+            background: #444;
+            color: #666;
+            border-color: #333;
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+        }
+
+        /* Selected Cards Display Area */
         .selected-cards {
             display: flex;
-            gap: 10px;
-            min-height: 60px;
+            gap: 15px;
+            min-height: 80px;
             background: #222;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
             align-items: center;
+            border: 1px solid #444;
         }
+
         .mini-card {
-            width: 40px;
-            height: 60px;
+            width: 60px; /* Bigger preview */
+            height: 84px;
             background: white;
             color: black;
-            border-radius: 4px;
+            border-radius: 6px;
             display: flex;
             justify-content: center;
             align-items: center;
+            font-size: 24px;
             font-weight: bold;
             position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .mini-card.red { color: red; }
+
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .mini-card.red { color: #c0392b; }
+        
         .remove-card {
             position: absolute;
-            top: -5px; right: -5px;
-            background: red; color: white;
+            top: -8px; right: -8px;
+            background: #c0392b; 
+            color: white;
             border-radius: 50%;
-            width: 15px; height: 15px;
-            font-size: 10px;
+            width: 24px; height: 24px;
+            font-size: 16px;
             display: flex; justify-content: center; align-items: center;
             cursor: pointer;
+            border: 2px solid #222;
+            transition: transform 0.2s;
         }
+        .remove-card:hover { transform: scale(1.2); background: #e74c3c; }
 
         /* Buttons */
         .action-btn {
             background: var(--accent);
             color: white;
             border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 5px;
+            padding: 15px 20px;
+            font-size: 18px;
+            border-radius: 8px;
             cursor: pointer;
             width: 100%;
             font-weight: bold;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 0 #d35400;
         }
-        .action-btn:hover { background: #d35400; }
-        .action-btn:disabled { background: #555; cursor: not-allowed; }
+        .action-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        .action-btn:hover { background: #e67e22; }
+        .action-btn:disabled { 
+            background: #555; 
+            box-shadow: none;
+            cursor: not-allowed; 
+            transform: none;
+        }
 
         /* Results */
         .result-box {
             background: #222;
-            padding: 15px;
-            border-radius: 5px;
+            padding: 20px;
+            border-radius: 8px;
             margin-top: 20px;
-            display: none; /* Hidden by default */
+            display: none;
+            border: 1px solid #444;
         }
         .stat-row {
             display: flex;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
-        .stat-label { width: 60px; font-weight: bold; }
+        .stat-label { 
+            width: 70px; 
+            font-weight: bold; 
+            font-size: 1.1rem;
+        }
         .progress-bg {
             flex-grow: 1;
             background: #444;
-            height: 20px;
-            border-radius: 10px;
+            height: 28px; /* Taller bars */
+            border-radius: 14px;
             overflow: hidden;
-            margin: 0 10px;
+            margin: 0 15px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
         }
         .progress-fill {
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            padding-right: 5px;
+            padding-right: 15px;
             color: white;
-            font-size: 12px;
+            font-size: 14px;
+            font-weight: bold;
             width: 0%;
             transition: width 0.5s ease-out;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
         .fill-win { background-color: var(--win); }
-        .fill-tie { background-color: var(--tie); color: #333; }
+        .fill-tie { background-color: var(--tie); color: #333; text-shadow: none; }
         .fill-lose { background-color: var(--lose); }
 
         .hand-name {
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             color: var(--accent);
-            margin-bottom: 10px;
+            margin-bottom: 20px;
             font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         /* Sections */
@@ -198,9 +267,21 @@
         
         .loading {
             text-align: center;
-            color: #888;
-            font-style: italic;
+            color: #aaa;
+            font-size: 1.2rem;
             display: none;
+            padding: 20px;
+        }
+        
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            :root {
+                --card-size: 40px; /* Slightly smaller on mobile to fit */
+                --card-gap: 5px;
+            }
+            .container { padding: 15px; }
+            .mini-card { width: 50px; height: 70px; font-size: 20px; }
+            .stat-label { width: 50px; font-size: 0.9rem; }
         }
     </style>
 </head>
@@ -222,8 +303,10 @@
         <!-- Pre-Flop -->
         <div id="preflop-section" class="stage-section">
             <h2>1. Your Hole Cards</h2>
-            <p style="font-size:0.9rem; color:#aaa;">Select 2 cards for your hand:</p>
-            <div id="hole-selector"></div>
+            <p style="font-size:1rem; color:#aaa; margin-bottom: 15px;">Tap 2 cards below to select your hand:</p>
+            <div class="card-selector-container">
+                <div id="hole-selector"></div>
+            </div>
             <div class="selected-cards" id="hole-display"></div>
             <button class="action-btn" id="btn-calc-preflop" onclick="calculatePreflop()" disabled>Calculate Pre-Flop Odds</button>
         </div>
@@ -231,8 +314,10 @@
         <!-- Flop -->
         <div id="flop-section" class="stage-section">
             <h2>2. The Flop</h2>
-            <p style="font-size:0.9rem; color:#aaa;">Select 3 community cards:</p>
-            <div id="flop-selector"></div>
+            <p style="font-size:1rem; color:#aaa; margin-bottom: 15px;">Tap 3 community cards:</p>
+            <div class="card-selector-container">
+                <div id="flop-selector"></div>
+            </div>
             <div class="selected-cards" id="flop-display"></div>
             <button class="action-btn" id="btn-calc-flop" onclick="calculateFlop()" disabled>Calculate Post-Flop Odds</button>
         </div>
@@ -240,8 +325,10 @@
         <!-- Turn -->
         <div id="turn-section" class="stage-section">
             <h2>3. The Turn</h2>
-            <p style="font-size:0.9rem; color:#aaa;">Select 1 community card:</p>
-            <div id="turn-selector"></div>
+            <p style="font-size:1rem; color:#aaa; margin-bottom: 15px;">Tap 1 community card:</p>
+            <div class="card-selector-container">
+                <div id="turn-selector"></div>
+            </div>
             <div class="selected-cards" id="turn-display"></div>
             <button class="action-btn" id="btn-calc-turn" onclick="calculateTurn()" disabled>Calculate Post-Turn Odds</button>
         </div>
@@ -249,14 +336,19 @@
         <!-- River -->
         <div id="river-section" class="stage-section">
             <h2>4. The River</h2>
-            <p style="font-size:0.9rem; color:#aaa;">Select 1 community card:</p>
-            <div id="river-selector"></div>
+            <p style="font-size:1rem; color:#aaa; margin-bottom: 15px;">Tap 1 community card:</p>
+            <div class="card-selector-container">
+                <div id="river-selector"></div>
+            </div>
             <div class="selected-cards" id="river-display"></div>
             <button class="action-btn" id="btn-calc-river" onclick="calculateRiver()" disabled>Calculate Final Odds</button>
         </div>
 
         <!-- Results Area -->
-        <div class="loading" id="loading-msg">Simulating 10,000 hands...</div>
+        <div class="loading" id="loading-msg">
+            <div style="font-size: 2rem; margin-bottom: 10px;">🎲</div>
+            Simulating 10,000 hands...
+        </div>
         
         <div id="results-area" class="result-box">
             <div class="hand-name" id="result-hand-name"></div>
@@ -275,7 +367,7 @@
             </div>
         </div>
         
-        <button class="action-btn" id="btn-reset" onclick="location.reload()" style="margin-top:20px; background:#555; display:none;">Play Again</button>
+        <button class="action-btn" id="btn-reset" onclick="location.reload()" style="margin-top:20px; background:#555; box-shadow: 0 4px 0 #333; display:none;">Play Again</button>
     </div>
 
 <script>
@@ -506,6 +598,9 @@ function initCardSelector(containerId, targetArray, maxCount, callback) {
         label.style.color = (suitChar === 'h' || suitChar === 'd') ? '#c0392b' : '#fff';
         row.appendChild(label);
 
+        let grid = document.createElement('div');
+        grid.className = 'card-grid';
+
         RANKS.split('').forEach((rankChar, rIdx) => {
             let sIdx = SUITS.indexOf(suitChar);
             let cardId = `${rIdx}${sIdx}`;
@@ -541,8 +636,9 @@ function initCardSelector(containerId, targetArray, maxCount, callback) {
                 }
                 refreshUI(containerId, targetArray, maxCount, callback);
             };
-            row.appendChild(btn);
+            grid.appendChild(btn);
         });
+        row.appendChild(grid);
         container.appendChild(row);
     });
 }
