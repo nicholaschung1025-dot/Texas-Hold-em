@@ -3,350 +3,713 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Texas Hold'em Calculator - Round by Round</title>
-    <!-- Load PyScript -->
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <title>Texas Hold'em Win Rate Calculator</title>
     <style>
-        /* Poker Table Theme */
+        :root {
+            --bg-color: #1a1a1a;
+            --table-color: #35654d;
+            --card-bg: #ffffff;
+            --text-color: #e0e0e0;
+            --accent: #f39c12;
+            --win: #27ae60;
+            --tie: #f1c40f;
+            --lose: #c0392b;
+        }
+
         body {
-            background: radial-gradient(circle at center, #1b6336 0%, #0a2e16 100%);
-            color: #ffffff; font-family: 'Segoe UI', sans-serif;
-            min-height: 100vh; margin: 0; padding: 20px;
-            display: flex; justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
+
+        h1 { margin-bottom: 10px; color: var(--accent); }
+        h2 { font-size: 1.2rem; margin-top: 20px; border-bottom: 1px solid #444; padding-bottom: 5px; width: 100%; max-width: 600px;}
+
+        .container {
+            background: #2c2c2c;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        /* Controls */
+        .control-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="number"] {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background: #333;
+            color: white;
+            width: 60px;
+        }
+
+        /* Card Selector */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(13, 1fr);
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+        .suit-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .suit-label { width: 20px; font-weight: bold; }
         
-        .poker-table {
-            background: rgba(0, 0, 0, 0.4); border: 12px solid #3e2723; border-radius: 40px;
-            padding: 30px; max-width: 800px; width: 100%;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 20px 50px rgba(0,0,0,0.8);
+        .card-btn {
+            aspect-ratio: 2/3;
+            background: var(--card-bg);
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+            transition: transform 0.1s;
+        }
+        .card-btn.red { color: #c0392b; }
+        .card-btn.selected {
+            background: var(--accent);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 0 5px var(--accent);
+        }
+        .card-btn.disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+            opacity: 0.5;
         }
 
-        h2 { color: #f1c40f; text-align: center; margin-top: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
-
-        /* Banner & Controls */
-        #instruction-banner {
-            background: #2980b9; color: white; padding: 12px; border-radius: 8px;
-            text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: background 0.3s;
+        /* Selected Cards Display */
+        .selected-cards {
+            display: flex;
+            gap: 10px;
+            min-height: 60px;
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            align-items: center;
         }
-        .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .controls input { width: 60px; padding: 8px; border-radius: 6px; border: none; background: #0f3d20; color: white; font-weight: bold; text-align: center; font-size: 16px; }
-        .btn-clear { background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-clear:hover { background: #c0392b; }
-
-        /* Card Slots Grid */
-        .board-layout {
-            display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center;
+        .mini-card {
+            width: 40px;
+            height: 60px;
+            background: white;
+            color: black;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            position: relative;
         }
-        .stage-group { background: rgba(0,0,0,0.5); padding: 10px 15px; border-radius: 12px; text-align: center; border: 2px solid transparent; }
-        .stage-group.active { border-color: #f1c40f; background: rgba(241, 196, 15, 0.1); }
-        .stage-group h3 { margin: 0 0 10px 0; font-size: 13px; color: #d4e157; text-transform: uppercase; }
-        .slots { display: flex; gap: 8px; justify-content: center; }
+        .mini-card.red { color: red; }
+        .remove-card {
+            position: absolute;
+            top: -5px; right: -5px;
+            background: red; color: white;
+            border-radius: 50%;
+            width: 15px; height: 15px;
+            font-size: 10px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+        }
+
+        /* Buttons */
+        .action-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .action-btn:hover { background: #d35400; }
+        .action-btn:disabled { background: #555; cursor: not-allowed; }
+
+        /* Results */
+        .result-box {
+            background: #222;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none; /* Hidden by default */
+        }
+        .stat-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .stat-label { width: 60px; font-weight: bold; }
+        .progress-bg {
+            flex-grow: 1;
+            background: #444;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 5px;
+            color: white;
+            font-size: 12px;
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+        .fill-win { background-color: var(--win); }
+        .fill-tie { background-color: var(--tie); color: #333; }
+        .fill-lose { background-color: var(--lose); }
+
+        .hand-name {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        /* Sections */
+        .stage-section { display: none; }
+        .stage-section.active { display: block; animation: fadeIn 0.5s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        .slot-card {
-            width: 40px; height: 58px; background: rgba(255,255,255,0.1); border: 2px dashed rgba(255,255,255,0.3);
-            border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: bold;
+        .loading {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            display: none;
         }
-
-        /* Interactive Deck */
-        .suit-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; }
-        .playing-card {
-            background: white; color: black; width: 34px; height: 50px; border-radius: 5px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 14px; cursor: pointer; user-select: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.4); border: 2px solid transparent;
-        }
-        .playing-card.red { color: #e74c3c; }
-        .playing-card.black { color: #2c3e50; }
-        .playing-card.selected { border: 3px solid #f1c40f; background: #555; opacity: 0.3; pointer-events: none; }
-
-        /* Calc Button */
-        button.calc-btn {
-            background: linear-gradient(145deg, #f1c40f, #d4ac0d); color: #2c3e50; font-size: 18px; font-weight: 900;
-            border: none; padding: 15px; border-radius: 30px; cursor: pointer; width: 100%; text-transform: uppercase;
-            margin: 20px 0; box-shadow: 0 6px 0 #9a7d0a; transition: all 0.2s;
-        }
-        button.calc-btn:active { transform: translateY(6px); box-shadow: 0 0 0 #9a7d0a; }
-        button.calc-btn:disabled { background: #555; color: #888; box-shadow: 0 6px 0 #333; cursor: not-allowed; }
-
-        /* Round Output History */
-        .history-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
-        .round-card { background: rgba(0,0,0,0.6); border: 1px solid #2d7a46; border-radius: 10px; padding: 15px; }
-        .round-card h4 { margin: 0 0 10px 0; border-bottom: 1px solid #2d7a46; padding-bottom: 5px; color: #f1c40f; text-align: center; }
-        .round-card .hand-name { text-align: center; font-size: 12px; color: #aed6f1; margin-bottom: 10px; min-height: 15px; }
-        
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; font-weight: bold; }
-        .win-c { color: #2ecc71; } .tie-c { color: #f1c40f; } .lose-c { color: #e74c3c; }
-        .pending { color: #7f8c8d; text-align: center; font-style: italic; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-    <div class="poker-table">
-        <h2>🃏 Texas Hold'em Simulator</h2>
+    <h1>🃏 Texas Hold'em Calculator</h1>
+    
+    <div class="container">
+        <!-- Setup -->
+        <div id="setup-section" class="stage-section active">
+            <h2>Game Setup</h2>
+            <div class="control-group">
+                <label>Number of Players (2-10):</label>
+                <input type="number" id="player-count" min="2" max="10" value="2">
+            </div>
+            <button class="action-btn" onclick="startGame()">Start Game</button>
+        </div>
+
+        <!-- Pre-Flop -->
+        <div id="preflop-section" class="stage-section">
+            <h2>1. Your Hole Cards</h2>
+            <p style="font-size:0.9rem; color:#aaa;">Select 2 cards for your hand:</p>
+            <div id="hole-selector"></div>
+            <div class="selected-cards" id="hole-display"></div>
+            <button class="action-btn" id="btn-calc-preflop" onclick="calculatePreflop()" disabled>Calculate Pre-Flop Odds</button>
+        </div>
+
+        <!-- Flop -->
+        <div id="flop-section" class="stage-section">
+            <h2>2. The Flop</h2>
+            <p style="font-size:0.9rem; color:#aaa;">Select 3 community cards:</p>
+            <div id="flop-selector"></div>
+            <div class="selected-cards" id="flop-display"></div>
+            <button class="action-btn" id="btn-calc-flop" onclick="calculateFlop()" disabled>Calculate Post-Flop Odds</button>
+        </div>
+
+        <!-- Turn -->
+        <div id="turn-section" class="stage-section">
+            <h2>3. The Turn</h2>
+            <p style="font-size:0.9rem; color:#aaa;">Select 1 community card:</p>
+            <div id="turn-selector"></div>
+            <div class="selected-cards" id="turn-display"></div>
+            <button class="action-btn" id="btn-calc-turn" onclick="calculateTurn()" disabled>Calculate Post-Turn Odds</button>
+        </div>
+
+        <!-- River -->
+        <div id="river-section" class="stage-section">
+            <h2>4. The River</h2>
+            <p style="font-size:0.9rem; color:#aaa;">Select 1 community card:</p>
+            <div id="river-selector"></div>
+            <div class="selected-cards" id="river-display"></div>
+            <button class="action-btn" id="btn-calc-river" onclick="calculateRiver()" disabled>Calculate Final Odds</button>
+        </div>
+
+        <!-- Results Area -->
+        <div class="loading" id="loading-msg">Simulating 10,000 hands...</div>
         
-        <div class="controls">
-            <div><label style="color:#d4e157; font-weight:bold;">👥 Players:</label> <input type="number" id="num_players" value="2" min="2" max="10"></div>
-            <button class="btn-clear" onclick="resetGame()">🔄 Reset Game</button>
-        </div>
-
-        <!-- Dynamic Game Flow Instruction -->
-        <div id="instruction-banner">Step 1: Select your 2 Hole Cards</div>
-
-        <!-- Round by Round Slots -->
-        <div class="board-layout">
-            <div class="stage-group active" id="group-hole">
-                <h3>Your Hand</h3>
-                <div class="slots"><div class="slot-card h-slot"></div><div class="slot-card h-slot"></div></div>
+        <div id="results-area" class="result-box">
+            <div class="hand-name" id="result-hand-name"></div>
+            
+            <div class="stat-row">
+                <span class="stat-label" style="color:var(--win)">Win</span>
+                <div class="progress-bg"><div class="progress-fill fill-win" id="bar-win">0%</div></div>
             </div>
-            <div class="stage-group" id="group-flop">
-                <h3>Flop (Round 1)</h3>
-                <div class="slots"><div class="slot-card c-slot"></div><div class="slot-card c-slot"></div><div class="slot-card c-slot"></div></div>
+            <div class="stat-row">
+                <span class="stat-label" style="color:var(--tie)">Tie</span>
+                <div class="progress-bg"><div class="progress-fill fill-tie" id="bar-tie">0%</div></div>
             </div>
-            <div class="stage-group" id="group-turn">
-                <h3>Turn (Round 2)</h3>
-                <div class="slots"><div class="slot-card c-slot"></div></div>
-            </div>
-            <div class="stage-group" id="group-river">
-                <h3>River (Round 3)</h3>
-                <div class="slots"><div class="slot-card c-slot"></div></div>
+            <div class="stat-row">
+                <span class="stat-label" style="color:var(--lose)">Lose</span>
+                <div class="progress-bg"><div class="progress-fill fill-lose" id="bar-lose">0%</div></div>
             </div>
         </div>
-
-        <div id="deck-container"></div>
-
-        <input type="hidden" id="hole_cards" value="">
-        <input type="hidden" id="board_cards" value="">
-        <input type="hidden" id="current_stage" value="PREFLOP">
-
-        <button class="calc-btn" id="calc-btn" disabled py-click="calculate_odds">Calculate Pre-Flop</button>
-
-        <!-- Output History Grid -->
-        <h3 style="color:#d4e157; margin-bottom: 10px; border-bottom: 1px solid #d4e157;">📊 Odds History</h3>
-        <div class="history-grid">
-            <div class="round-card" id="out-preflop"><h4>Pre-Flop</h4><div class="pending">Waiting...</div></div>
-            <div class="round-card" id="out-flop"><h4>Flop</h4><div class="pending">Waiting...</div></div>
-            <div class="round-card" id="out-turn"><h4>Turn</h4><div class="pending">Waiting...</div></div>
-            <div class="round-card" id="out-river"><h4>River</h4><div class="pending">Waiting...</div></div>
-        </div>
+        
+        <button class="action-btn" id="btn-reset" onclick="location.reload()" style="margin-top:20px; background:#555; display:none;">Play Again</button>
     </div>
 
-    <!-- Frontend State Machine Engine (JavaScript) -->
-    <script>
-        const suits = [{s:'s', sym:'♠', c:'black'}, {s:'h', sym:'♥', c:'red'}, {s:'d', sym:'♦', c:'red'}, {s:'c', sym:'♣', c:'black'}];
-        const ranks = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
+<script>
+/**
+ * LOGIC PORTED FROM PYTHON
+ */
+const RANKS = "23456789TJQKA";
+const SUITS = "cdhs"; 
+const SUIT_SYMBOLS = {"c": "♣", "d": "♦", "h": "♥", "s": "♠"};
+const RANK_DISPLAY = {"T": "10", "J": "J", "Q": "Q", "K": "K", "A": "A"};
+const HAND_NAMES = [
+    "High Card", "One Pair", "Two Pair", "Three of a Kind",
+    "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush"
+];
+
+// State
+let numPlayers = 2;
+let holeCards = [];
+let communityCards = [];
+let usedCards = new Set();
+
+// --- Card Helpers ---
+function createCard(rIdx, sIdx) {
+    return { r: rIdx, s: sIdx, id: `${rIdx}${sIdx}` };
+}
+
+function getCardString(card) {
+    let rStr = RANK_DISPLAY[RANKS[card.r]] || RANKS[card.r];
+    let sSym = SUIT_SYMBOLS[SUITS[card.s]];
+    return { text: `${rStr}${sSym}`, isRed: (SUITS[card.s] === 'h' || SUITS[card.s] === 'd') };
+}
+
+// --- Hand Evaluator (JS Version of eval_5card) ---
+function evaluateHand(cards) {
+    // cards is array of {r, s}
+    let ranks = cards.map(c => c.r).sort((a,b) => b-a);
+    let suits = cards.map(c => c.s);
+    
+    let isFlush = new Set(suits).size === 1;
+    
+    // Check Straight
+    let uniqueRanks = [...new Set(ranks)];
+    let isStraight = false;
+    let straightHigh = -1;
+
+    // Normal straight check
+    if (uniqueRanks.length >= 5) {
+        for (let i = 0; i <= uniqueRanks.length - 5; i++) {
+            if (uniqueRanks[i] - uniqueRanks[i+4] === 4) {
+                isStraight = true;
+                straightHigh = uniqueRanks[i];
+                break;
+            }
+        }
+    }
+    // Wheel (A-2-3-4-5) check: A is 12, 2 is 1...
+    if (!isStraight && uniqueRanks.includes(12) && uniqueRanks.includes(0) && uniqueRanks.includes(1) && uniqueRanks.includes(2) && uniqueRanks.includes(3)) {
+        isStraight = true;
+        straightHigh = 3; // 5 high straight
+    }
+
+    // Count frequencies
+    let counts = {};
+    ranks.forEach(r => counts[r] = (counts[r] || 0) + 1);
+    let freqs = Object.values(counts).sort((a,b) => b-a);
+    
+    // Determine Score Tuple: [Type, TieBreakers...]
+    // Type: 8=StrFlush, 7=4Kind, 6=FullHouse, 5=Flush, 4=Straight, 3=3Kind, 2=2Pair, 1=Pair, 0=High
+    
+    let tieBreakers = [];
+    
+    if (isStraight && isFlush) return [8, straightHigh];
+    
+    if (freqs[0] === 4) {
+        // Four of a kind
+        let quadRank = parseInt(Object.keys(counts).find(key => counts[key] === 4));
+        let kicker = parseInt(Object.keys(counts).find(key => counts[key] === 1));
+        return [7, quadRank, kicker];
+    }
+    
+    if (freqs[0] === 3 && freqs[1] === 2) {
+        // Full House
+        let tripRank = parseInt(Object.keys(counts).find(key => counts[key] === 3));
+        let pairRank = parseInt(Object.keys(counts).find(key => counts[key] === 2));
+        return [6, tripRank, pairRank];
+    }
+    
+    if (isFlush) return [5, ...ranks];
+    
+    if (isStraight) return [4, straightHigh];
+    
+    if (freqs[0] === 3) {
+        let tripRank = parseInt(Object.keys(counts).find(key => counts[key] === 3));
+        let kickers = Object.keys(counts).filter(k => counts[k] === 1).map(Number).sort((a,b)=>b-a);
+        return [3, tripRank, ...kickers];
+    }
+    
+    if (freqs[0] === 2 && freqs[1] === 2) {
+        let pairs = Object.keys(counts).filter(k => counts[k] === 2).map(Number).sort((a,b)=>b-a);
+        let kicker = parseInt(Object.keys(counts).find(key => counts[key] === 1));
+        return [2, pairs[1], pairs[0], kicker];
+    }
+    
+    if (freqs[0] === 2) {
+        let pairRank = parseInt(Object.keys(counts).find(key => counts[key] === 2));
+        let kickers = Object.keys(counts).filter(k => counts[k] === 1).map(Number).sort((a,b)=>b-a);
+        return [1, pairRank, ...kickers];
+    }
+    
+    return [0, ...ranks];
+}
+
+function getBestHand(all7Cards) {
+    // Generate all 5-card combinations from 7 cards
+    // Simple combinatorics for 7C5 = 21 combinations
+    let bestScore = [-1];
+    
+    // Helper to get combinations
+    function* combinations(array, k) {
+        if (k === 0) yield [];
+        else if (array.length > 0) {
+            const [head, ...tail] = array;
+            for (const combo of combinations(tail, k - 1)) yield [head, ...combo];
+            for (const combo of combinations(tail, k)) yield combo;
+        }
+    }
+
+    for (let combo of combinations(all7Cards, 5)) {
+        let score = evaluateHand(combo);
+        // Compare scores lexicographically
+        let isBetter = false;
+        for (let i = 0; i < Math.max(score.length, bestScore.length); i++) {
+            if (score[i] > (bestScore[i] || -1)) { isBetter = true; break; }
+            if (score[i] < (bestScore[i] || -1)) { break; }
+        }
+        if (isBetter) bestScore = score;
+    }
+    return bestScore;
+}
+
+// --- Monte Carlo Simulation ---
+function runSimulation(hole, community, players, iterations = 5000) {
+    let deck = [];
+    for (let r = 0; r < 13; r++) {
+        for (let s = 0; s < 4; s++) {
+            let id = `${r}${s}`;
+            let isUsed = hole.some(c => c.id === id) || community.some(c => c.id === id);
+            if (!isUsed) deck.push({r, s, id});
+        }
+    }
+
+    let wins = 0, ties = 0, losses = 0;
+    let needBoard = 5 - community.length;
+    
+    // Optimization: If board is full, no simulation needed, just evaluate once
+    if (needBoard === 0) {
+        let myScore = getBestHand([...hole, ...community]);
+        // We assume 1v1 for simplicity in final calc if multiple players, 
+        // but strictly we should check against random opponents if board is full but we don't know their cards.
+        // However, standard calculators usually show "Equity" vs random hands.
+        // For this UI, if board is full, we just show the hand strength, but technically we can't know win% without opponent cards.
+        // The python script calculates vs random opponents even on river.
+    }
+
+    for (let i = 0; i < iterations; i++) {
+        // Shuffle deck (Fisher-Yates)
+        for (let j = deck.length - 1; j > 0; j--) {
+            const k = Math.floor(Math.random() * (j + 1));
+            [deck[j], deck[k]] = [deck[k], deck[j]];
+        }
+
+        let board = [...community, ...deck.slice(0, needBoard)];
+        let oppDeck = deck.slice(needBoard);
         
-        let hole = []; let comm = [];
-        const deckEl = document.getElementById('deck-container');
+        let myScore = getBestHand([...hole, ...board]);
+        let beatMe = false;
+        let tieMe = false;
 
-        // Initialize Deck
-        suits.forEach(suit => {
-            const row = document.createElement('div'); row.className = 'suit-row';
-            ranks.forEach(rank => {
-                const displayRank = rank === 'T' ? '10' : rank;
-                const card = document.createElement('div');
-                card.className = `playing-card ${suit.c}`; card.id = `card-${rank}${suit.s}`;
-                card.innerHTML = `${displayRank}<br><span style="font-size:18px">${suit.sym}</span>`;
-                card.onclick = () => pickCard(rank + suit.s, suit.sym, displayRank, suit.c);
-                row.appendChild(card);
-            });
-            deckEl.appendChild(row);
+        for (let p = 0; p < players - 1; p++) {
+            let oppHole = [oppDeck[p*2], oppDeck[p*2+1]];
+            let oppScore = getBestHand([...oppHole, ...board]);
+            
+            // Compare
+            let oppWins = false;
+            for (let k = 0; k < Math.max(myScore.length, oppScore.length); k++) {
+                if (oppScore[k] > (myScore[k] || -1)) { oppWins = true; break; }
+                if (oppScore[k] < (myScore[k] || -1)) { break; }
+            }
+
+            if (oppWins) {
+                beatMe = true;
+                break; 
+            }
+            // Check tie logic roughly (if no one beat me yet, check if equal)
+            let isTie = true;
+            for (let k = 0; k < Math.max(myScore.length, oppScore.length); k++) {
+                if (oppScore[k] !== (myScore[k] || -1)) { isTie = false; break; }
+            }
+            if (isTie) tieMe = true;
+        }
+
+        if (beatMe) losses++;
+        else if (tieMe) ties++;
+        else wins++;
+    }
+
+    return {
+        win: (wins / iterations) * 100,
+        tie: (ties / iterations) * 100,
+        lose: (losses / iterations) * 100
+    };
+}
+
+// --- UI Logic ---
+
+function initCardSelector(containerId, targetArray, maxCount, callback) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    
+    // Create Rows for Suits
+    SUITS.split('').forEach(suitChar => {
+        let row = document.createElement('div');
+        row.className = 'suit-row';
+        
+        let label = document.createElement('div');
+        label.className = 'suit-label';
+        label.innerText = SUIT_SYMBOLS[suitChar];
+        label.style.color = (suitChar === 'h' || suitChar === 'd') ? '#c0392b' : '#fff';
+        row.appendChild(label);
+
+        RANKS.split('').forEach((rankChar, rIdx) => {
+            let sIdx = SUITS.indexOf(suitChar);
+            let cardId = `${rIdx}${sIdx}`;
+            
+            let btn = document.createElement('div');
+            btn.className = 'card-btn';
+            if (suitChar === 'h' || suitChar === 'd') btn.classList.add('red');
+            
+            let display = RANK_DISPLAY[rankChar] || rankChar;
+            btn.innerText = display;
+            
+            // Check state
+            if (usedCards.has(cardId)) {
+                btn.classList.add('disabled');
+            } else if (targetArray.some(c => c.id === cardId)) {
+                btn.classList.add('selected');
+            }
+
+            btn.onclick = () => {
+                if (usedCards.has(cardId)) return;
+                
+                if (targetArray.some(c => c.id === cardId)) {
+                    // Remove
+                    targetArray.splice(targetArray.findIndex(c => c.id === cardId), 1);
+                    usedCards.delete(cardId);
+                } else {
+                    // Add
+                    if (targetArray.length < maxCount) {
+                        let newCard = createCard(rIdx, sIdx);
+                        targetArray.push(newCard);
+                        usedCards.add(cardId);
+                    }
+                }
+                refreshUI(containerId, targetArray, maxCount, callback);
+            };
+            row.appendChild(btn);
         });
+        container.appendChild(row);
+    });
+}
 
-        function pickCard(code, sym, rankStr, colorClass) {
-            const html = `<span class="${colorClass}">${rankStr}${sym}</span>`;
-            if (hole.length < 2) { hole.push({code, html}); }
-            else if (comm.length < 5) { comm.push({code, html}); }
-            else { return; } // Board full
-            
-            document.getElementById(`card-${code}`).classList.add('selected');
-            updateUI();
-        }
+function refreshUI(selectorId, cardArray, maxCount, callback) {
+    // Re-render selector to update disabled/selected states
+    initCardSelector(selectorId, cardArray, maxCount, callback);
+    
+    // Update Display Area
+    let displayId = selectorId.replace('-selector', '-display');
+    let displayDiv = document.getElementById(displayId);
+    displayDiv.innerHTML = '';
+    
+    cardArray.forEach((card, idx) => {
+        let info = getCardString(card);
+        let mini = document.createElement('div');
+        mini.className = `mini-card ${info.isRed ? 'red' : ''}`;
+        mini.innerText = info.text;
+        
+        let removeBtn = document.createElement('div');
+        removeBtn.className = 'remove-card';
+        removeBtn.innerText = '×';
+        removeBtn.onclick = (e) => {
+            e.stopPropagation();
+            usedCards.delete(card.id);
+            cardArray.splice(idx, 1);
+            refreshUI(selectorId, cardArray, maxCount, callback);
+            if(callback) callback();
+        };
+        
+        mini.appendChild(removeBtn);
+        displayDiv.appendChild(mini);
+    });
 
-        function updateUI() {
-            // Fill slots
-            const hSlots = document.querySelectorAll('.h-slot');
-            for(let i=0; i<2; i++) { hSlots[i].innerHTML = hole[i] ? hole[i].html : ''; hSlots[i].style.background = hole[i] ? 'white' : 'rgba(255,255,255,0.1)'; }
-            
-            const cSlots = document.querySelectorAll('.c-slot');
-            for(let i=0; i<5; i++) { cSlots[i].innerHTML = comm[i] ? comm[i].html : ''; cSlots[i].style.background = comm[i] ? 'white' : 'rgba(255,255,255,0.1)'; }
+    // Enable/Disable Button
+    let btnId = selectorId.replace('-selector', '').replace('hole', 'btn-calc-preflop');
+    if(selectorId === 'flop-selector') btnId = 'btn-calc-flop';
+    if(selectorId === 'turn-selector') btnId = 'btn-calc-turn';
+    if(selectorId === 'river-selector') btnId = 'btn-calc-river';
+    
+    let btn = document.getElementById(btnId);
+    if(btn) btn.disabled = (cardArray.length !== maxCount);
+}
 
-            document.getElementById('hole_cards').value = hole.map(c => c.code).join(' ');
-            document.getElementById('board_cards').value = comm.map(c => c.code).join(' ');
+function showSection(id) {
+    document.querySelectorAll('.stage-section').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
 
-            // State Machine Logic
-            const banner = document.getElementById('instruction-banner');
-            const btn = document.getElementById('calc-btn');
-            
-            document.querySelectorAll('.stage-group').forEach(el => el.classList.remove('active'));
+function updateResults(win, tie, lose, handName) {
+    document.getElementById('results-area').style.display = 'block';
+    document.getElementById('result-hand-name').innerText = handName || "Calculating...";
+    
+    document.getElementById('bar-win').style.width = win + '%';
+    document.getElementById('bar-win').innerText = win.toFixed(1) + '%';
+    
+    document.getElementById('bar-tie').style.width = tie + '%';
+    document.getElementById('bar-tie').innerText = tie.toFixed(1) + '%';
+    
+    document.getElementById('bar-lose').style.width = lose + '%';
+    document.getElementById('bar-lose').innerText = lose.toFixed(1) + '%';
+}
 
-            if (hole.length < 2) {
-                document.getElementById('group-hole').classList.add('active');
-                banner.innerText = `Step 1: Select your 2 Hole Cards (${hole.length}/2)`;
-                banner.style.background = '#2980b9'; btn.disabled = true;
-            } else if (comm.length === 0) {
-                banner.innerText = "Step 2: Calculate Pre-Flop Odds ->";
-                banner.style.background = '#27ae60'; btn.disabled = false; btn.innerText = "Calculate Pre-Flop";
-                document.getElementById('current_stage').value = "out-preflop";
-            } else if (comm.length < 3) {
-                document.getElementById('group-flop').classList.add('active');
-                banner.innerText = `Step 3: Select 3 Flop Cards (${comm.length}/3)`;
-                banner.style.background = '#8e44ad'; btn.disabled = true;
-            } else if (comm.length === 3) {
-                banner.innerText = "Step 4: Calculate Flop Odds ->";
-                banner.style.background = '#27ae60'; btn.disabled = false; btn.innerText = "Calculate Flop";
-                document.getElementById('current_stage').value = "out-flop";
-            } else if (comm.length === 4) {
-                banner.innerText = "Step 6: Calculate Turn Odds ->";
-                banner.style.background = '#27ae60'; btn.disabled = false; btn.innerText = "Calculate Turn";
-                document.getElementById('current_stage').value = "out-turn";
-            } else if (comm.length === 5) {
-                banner.innerText = "Step 8: Calculate Final River Odds ->";
-                banner.style.background = '#27ae60'; btn.disabled = false; btn.innerText = "Calculate River";
-                document.getElementById('current_stage').value = "out-river";
-            }
-            
-            if(comm.length === 3 && document.getElementById('out-flop').innerText.includes('Waiting')) {
-                document.getElementById('group-turn').classList.add('active');
-                if(!btn.disabled) { banner.innerText = "Calculate Flop odds OR proceed to Turn."; banner.style.background = '#d35400';}
-            }
-            if(comm.length === 4 && document.getElementById('out-turn').innerText.includes('Waiting')) {
-                document.getElementById('group-river').classList.add('active');
-            }
-        }
+// --- Game Flow Functions ---
 
-        function resetGame() {
-            hole = []; comm = [];
-            document.querySelectorAll('.playing-card').forEach(c => c.classList.remove('selected'));
-            ['preflop','flop','turn','river'].forEach(id => {
-                const title = id.charAt(0).toUpperCase() + id.slice(1);
-                document.getElementById(`out-${id}`).innerHTML = `<h4>${id==='preflop'?'Pre-Flop':title}</h4><div class="pending">Waiting...</div>`;
-            });
-            updateUI();
-        }
+function startGame() {
+    let input = document.getElementById('player-count');
+    let val = parseInt(input.value);
+    if (val < 2) val = 2;
+    if (val > 10) val = 10;
+    numPlayers = val;
+    
+    showSection('preflop-section');
+    initCardSelector('hole-selector', holeCards, 2, checkPreflopReady);
+}
 
-        // Allow PyScript to advance UI automatically after calculation
-        window.advanceGameState = function(stage) {
-            const banner = document.getElementById('instruction-banner');
-            document.querySelectorAll('.stage-group').forEach(el => el.classList.remove('active'));
-            document.getElementById('calc-btn').disabled = true;
-            
-            if(stage === 'out-preflop') {
-                document.getElementById('group-flop').classList.add('active');
-                banner.innerText = "Step 3: Select 3 Flop Cards"; banner.style.background = '#8e44ad';
-            } else if(stage === 'out-flop') {
-                document.getElementById('group-turn').classList.add('active');
-                banner.innerText = "Step 5: Select 1 Turn Card"; banner.style.background = '#e67e22';
-            } else if(stage === 'out-turn') {
-                document.getElementById('group-river').classList.add('active');
-                banner.innerText = "Step 7: Select 1 River Card"; banner.style.background = '#c0392b';
-            } else {
-                banner.innerText = "Hand Complete! Click Reset Game to play again."; banner.style.background = '#2c3e50';
-            }
-        }
-    </script>
+function checkPreflopReady() {
+    // Button enable logic handled in refreshUI
+}
 
-    <!-- Backend Engine (PyScript Math Logic) -->
-    <py-script>
-        import random, asyncio
-        from itertools import combinations
-        from collections import Counter
-        from pyscript import document, window
+function calculatePreflop() {
+    document.getElementById('loading-msg').style.display = 'block';
+    document.getElementById('results-area').style.display = 'none';
+    
+    setTimeout(() => {
+        let res = runSimulation(holeCards, [], numPlayers, 5000);
+        updateResults(res.win, res.tie, res.lose, "Pre-Flop Equity");
+        document.getElementById('loading-msg').style.display = 'none';
+        
+        // Prepare next stage
+        setTimeout(() => {
+            showSection('flop-section');
+            initCardSelector('flop-selector', communityCards, 3, checkFlopReady);
+        }, 1000);
+    }, 100);
+}
 
-        RANKS, SUITS = "23456789TJQKA", "cdhs"
-        HAND_NAMES = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush"]
+function checkFlopReady() {
+    if (communityCards.length === 3) {
+        let score = getBestHand([...holeCards, ...communityCards]);
+        let name = HAND_NAMES[score[0]];
+        document.getElementById('result-hand-name').innerText = `Current Hand: ${name}`;
+    }
+}
 
-        def parse_card(s):
-            return (RANKS.index(s[0]), SUITS.index(s[1].lower()))
+function calculateFlop() {
+    document.getElementById('loading-msg').style.display = 'block';
+    document.getElementById('results-area').style.display = 'none';
+    
+    setTimeout(() => {
+        let res = runSimulation(holeCards, communityCards, numPlayers, 5000);
+        let score = getBestHand([...holeCards, ...communityCards]);
+        updateResults(res.win, res.tie, res.lose, HAND_NAMES[score[0]]);
+        document.getElementById('loading-msg').style.display = 'none';
 
-        def eval_5card(hand):
-            ranks = sorted([c[0] for c in hand], reverse=True)
-            suits = [c[1] for c in hand]
-            is_flush = len(set(suits)) == 1
-            is_straight = ranks == list(range(ranks[0], ranks[0]-5, -1))
-            if not is_straight and ranks == [12, 3, 2, 1, 0]:
-                is_straight = True; ranks = [3, 2, 1, 0, -1]
-            cnt = Counter(ranks); freq = sorted(cnt.values(), reverse=True)
-            sorted_ranks = sorted(cnt.keys(), key=lambda r: (cnt[r], r), reverse=True)
-            
-            if is_straight and is_flush: return (8, ranks)
-            if freq == [4, 1]: return (7, sorted_ranks)
-            if freq == [3, 2]: return (6, sorted_ranks)
-            if is_flush: return (5, ranks)
-            if is_straight: return (4, ranks)
-            if freq[0] == 3: return (3, sorted_ranks)
-            if freq[:2] == [2, 2]: return (2, sorted_ranks)
-            if freq[0] == 2: return (1, sorted_ranks)
-            return (0, ranks)
+        setTimeout(() => {
+            showSection('turn-section');
+            initCardSelector('turn-selector', communityCards, 4, checkTurnReady); // Max 4 because 3 already in array
+        }, 1000);
+    }, 100);
+}
 
-        def best_7card(cards):
-            return max(eval_5card(combo) for combo in combinations(cards, 5))
+function checkTurnReady() {
+    if (communityCards.length === 4) {
+        let score = getBestHand([...holeCards, ...communityCards]);
+        document.getElementById('result-hand-name').innerText = `Current Hand: ${HAND_NAMES[score[0]]}`;
+    }
+}
 
-        def calc_win_rate(hole, community, num_players, sims=3000):
-            all_cards = [(r, s) for r in range(13) for s in range(4)]
-            used = {tuple(c) for c in hole + community}
-            deck = [c for c in all_cards if tuple(c) not in used]
-            
-            need_board = 5 - len(community); need_opps = (num_players - 1) * 2
-            wins = ties = losses = 0
-            
-            for _ in range(sims):
-                random.shuffle(deck)
-                board = list(community) + deck[:need_board]
-                opp_deck = deck[need_board:]
-                my_rank = best_7card(hole + board)
-                
-                beat_me = tie_me = False
-                for i in range(num_players - 1):
-                    opp = best_7card(opp_deck[i*2:(i+1)*2] + board)
-                    if opp > my_rank: beat_me = True; break
-                    elif opp == my_rank: tie_me = True
-                        
-                if beat_me: losses += 1
-                elif tie_me: ties += 1
-                else: wins += 1
-                
-            return wins/sims*100, ties/sims*100, losses/sims*100
+function calculateTurn() {
+    document.getElementById('loading-msg').style.display = 'block';
+    document.getElementById('results-area').style.display = 'none';
+    
+    setTimeout(() => {
+        let res = runSimulation(holeCards, communityCards, numPlayers, 5000);
+        let score = getBestHand([...holeCards, ...communityCards]);
+        updateResults(res.win, res.tie, res.lose, HAND_NAMES[score[0]]);
+        document.getElementById('loading-msg').style.display = 'none';
 
-        async def calculate_odds(event):
-            stage_id = document.getElementById("current_stage").value
-            out_div = document.getElementById(stage_id)
-            btn = document.getElementById("calc-btn")
-            
-            btn.innerText = "Calculating..."
-            out_div.innerHTML += "<div class='pending' style='color:#f1c40f;'>Simulating...</div>"
-            await asyncio.sleep(0.05) 
-            
-            h_str = document.getElementById("hole_cards").value.split()
-            b_str = document.getElementById("board_cards").value.split()
-            n = int(document.getElementById("num_players").value)
-            
-            hole = [parse_card(c) for c in h_str]
-            community = [parse_card(c) for c in b_str]
-            
-            w, t, l = calc_win_rate(hole, community, n, sims=3500)
-            
-            # Determine best hand text
-            hand_text = ""
-            if len(community) >= 3:
-                hand_rank = best_7card(hole + community)[0]
-                hand_text = f"<div class='hand-name'>Current: <strong>{HAND_NAMES[hand_rank]}</strong></div>"
-            else:
-                hand_text = "<div class='hand-name'>&nbsp;</div>"
-                
-            title = stage_id.replace("out-", "").capitalize()
-            if title == "Preflop": title = "Pre-Flop"
-            
-            out_div.innerHTML = f"""
-                <h4>{title}</h4>
-                {hand_text}
-                <div class="stat-row win-c"><span>Win:</span><span>{w:.1f}%</span></div>
-                <div class="stat-row tie-c"><span>Tie:</span><span>{t:.1f}%</span></div>
-                <div class="stat-row lose-c"><span>Lose:</span><span>{l:.1f}%</span></div>
-            """
-            
-            window.advanceGameState(stage_id)
-    </py-script>
+        setTimeout(() => {
+            showSection('river-section');
+            initCardSelector('river-selector', communityCards, 5, checkRiverReady);
+        }, 1000);
+    }, 100);
+}
+
+function checkRiverReady() {
+    if (communityCards.length === 5) {
+        let score = getBestHand([...holeCards, ...communityCards]);
+        document.getElementById('result-hand-name').innerText = `Current Hand: ${HAND_NAMES[score[0]]}`;
+    }
+}
+
+function calculateRiver() {
+    document.getElementById('loading-msg').style.display = 'block';
+    document.getElementById('results-area').style.display = 'none';
+    
+    setTimeout(() => {
+        // Higher iterations for final result
+        let res = runSimulation(holeCards, communityCards, numPlayers, 10000);
+        let score = getBestHand([...holeCards, ...communityCards]);
+        updateResults(res.win, res.tie, res.lose, `Final: ${HAND_NAMES[score[0]]}`);
+        document.getElementById('loading-msg').style.display = 'none';
+        document.getElementById('btn-reset').style.display = 'block';
+    }, 100);
+}
+
+</script>
 </body>
 </html>
